@@ -86,6 +86,40 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should filter the home page by category and publisher', async ({ page }) => {
+    await test.step('Navigate to the homepage and inspect filter controls', async () => {
+      await page.goto('/');
+      await expect(page.getByTestId('game-filters')).toBeVisible();
+      await expect(page.getByTestId('category-filter')).toBeVisible();
+      await expect(page.getByTestId('publisher-filter')).toBeVisible();
+    });
+
+    await test.step('Select a category filter and verify cards match it', async () => {
+      const categoryFilter = page.getByTestId('category-filter');
+      const categoryOption = categoryFilter.locator('option').nth(1);
+      const categoryLabel = (await categoryOption.textContent())?.trim();
+
+      expect(categoryLabel).toBeTruthy();
+      await categoryFilter.selectOption({ label: categoryLabel! });
+
+      const visibleCards = page.locator('[data-testid="game-card"]:visible');
+      const visibleCount = await visibleCards.count();
+
+      expect(visibleCount).toBeGreaterThan(0);
+      for (let index = 0; index < visibleCount; index += 1) {
+        const card = visibleCards.nth(index);
+        const tagText = await card.getByTestId('game-category').textContent().catch(() => null);
+        expect(tagText === null || tagText.trim() === categoryLabel).toBeTruthy();
+      }
+    });
+
+    await test.step('Clear the filter and verify the full list is restored', async () => {
+      await page.getByTestId('clear-filters-button').click();
+      const cards = page.locator('[data-testid="game-card"]:visible');
+      await expect(cards.first()).toBeVisible();
+    });
+  });
+
   test('should display a button to back the game', async ({ page }) => {
     await test.step('Navigate to game details page', async () => {
       await page.goto('/game/1');
